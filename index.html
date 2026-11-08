@@ -1,117 +1,169 @@
 <html>
-	<head>
-		<script src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.4/MathJax.js?config=default'></script>
-		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-		<style>
-			h1 {
-				text-align: center;
-			}
 
-			.container {
-				margin: 0 auto;
-				padding: 60px 20%;
-			}
+<head>
+	<script src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.4/MathJax.js?config=default'></script>
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+	<style>
+		h1 {
+			text-align: center;
+		}
 
-			figure {
-				text-align: center;
-			}
+		.container {
+			margin: 0 auto;
+			padding: 60px 20%;
+		}
 
-			img {
-				display: inline-block;
-			}
+		figure {
+			text-align: center;
+		}
 
-			body {
-				font-family: 'Inter', sans-serif;
-			}
+		img {
+			display: inline-block;
+		}
 
-			.data-table {
-				border-collapse: collapse;
-				text-align: center;
-			}
+		body {
+			font-family: 'Inter', sans-serif;
+		}
 
-			.data-table th,
-			.data-table td {
-				border: 1px solid #ccc;
-				padding: 8px 16px;
-			}
+		.data-table {
+			border-collapse: collapse;
+			text-align: center;
+		}
 
-			.data-table th {
-				background-color: #f2f2f2;
-				font-weight: 600;
-			}
-		</style>
-	</head>
-	<body>
-		<div class="container">
+		.data-table th,
+		.data-table td {
+			border: 1px solid #ccc;
+			padding: 8px 16px;
+		}
+
+		.data-table th {
+			background-color: #f2f2f2;
+			font-weight: 600;
+		}
+	</style>
+</head>
+
+<body>
+	<div class="container">
 		<h1>CS184/284A Fall 2026 Homework 3 Write-Up</h1>
-		<div style="text-align: center;">Names: </div>
+		<div style="text-align: center;">Names: Stephen Park, Connor Lu</div>
 
 		<br>
 
-		Link to webpage: (TODO) <a href="https://cs184.eecs.berkeley.edu/fa26">cs184.eecs.berkeley.edu/fa26</a>
-		Link to GitHub repository: (TODO) <a href="https://cs184.eecs.berkeley.edu/fa26">cs184.eecs.berkeley.edu/fa26</a>
-		
-		<figure>
-			<img src="assets/cornell.png" alt="Cornell Boxes with Bunnies" style="width:70%"/>
-			<figcaption>You can add images with captions!</figcaption>
-		</figure>
+		Link to webpage:<a
+			href="https://cal-cs184-student.github.io/hw3-o-0-hmmmmm-huhhhh-writeup/">https://cal-cs184-student.github.io/hw3-o-0-hmmmmm-huhhhh-writeup/</a>
+		Link to GitHub repository: <a
+			href="https://github.com/cal-cs184-student/hw3-o-0-hmmmmm-huhhhh">https://github.com/cal-cs184-student/hw3-o-0-hmmmmm-huhhhh</a>
 
-		<!--
-		We've already added one heading per part, to make your write-up as navigable when grading. Please fit your write-up within these sections!
-		-->
 
 		<h2>Overview</h2>
-		Give a high-level overview of what you implemented in this homework. Think about what you've built as a whole. Share your thoughts on what interesting things you've learned from completing the homework.
+		In this assignment we implemented a path tracer. This involves generating and throwing rays, then calculating
+		the amount of direct and then indirect light that reaches the camera through these points. We also implemented
+		BVHs to accelerate the ray tracing process, and adaptive sampling to speed up high quality renders.
 
 		<h2>Part 1: Ray Generation and Scene Intersection</h2>
-		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-
-		<p>Here is an example 2x2 gridlike structure using an HTML table. Each <b>tr</b> is a row and each <b>td</b> is a column in that row. You might find this useful for framing and showing your result images in an organized fashion.</p>
+		To begin we actually need to generate rays that travel from the origin of the camera into the scene. To do this
+		we consider a coordinate system where the origin is the camera origin and the image plane lies at (0,0,-1) with
+		an associated FOV. From here we make a function that takes in a normalized x and y (ranges from 0 to 1) position
+		along the camera sensor and translates it to a camera space vector. To do this we get the min and max along each
+		axis, multiply max minus min by x and y, then add the min back along each axis.
+		Then we use a rotation matrix to transform this direction into world space.<br /><br />
+		Next we need to actually sample pixels in our scene. To do this we use a Monte Carlo estimate by throwing a set
+		number of random rays that lie within that pixel. In other words, for a pixel (x, y) we generate n random
+		offsets between 0 and 1 to create our samples. Then we use these samples to generate rays and then estimate the
+		amount of light at those points. Finally, we sum this and return an average. Notably however we haven't done
+		this yet, in fact we can't intersect with anything in the scene yet! <br /><br />
+		To do this we need to start off by detecting triangle intersections, we chose to implement the Möller-Trumbore
+		intersection algorithm. This algorithm can be understood from the point of view of a system of equations. To
+		begin we can write a point on the triangle with barycentric coordinates being \(P=\alpha A+\beta B+\gamma C\),
+		which can be reorganized as follows:
+		$$
+		\begin{align}
+		P&=(1-\beta - \gamma)A + \beta B + \gamma C\\
+		P&=A + \beta(B-A)+\gamma(C-A)
+		\end{align}
+		$$
+		Notably the point we are looking for can be written as the origin of the ray + \(t\) times the direction, so
+		let's set up a system of equations.
+		$$
+		\begin{align}
+		O+tD&=A + \beta (B-A)+\gamma(C-A)\\
+		O-A &= -tD + \beta (B-A)+\gamma(C-A)\\
+		\end{align}
+		$$
+		Finally we can simply apply Cramer's rule to find \(\beta\), \(\gamma\) and t.
+		Through these we can find the surface normal using the barycentric coordinates as simply \(\alpha\cdot n_1 +
+		\beta\cdot n_2 + \gamma\cdot n_3\).<br /><br />
+		Next sphere intersections, for this I took the time to read the <a
+			href="https://en.wikipedia.org/wiki/Line%E2%80%93sphere_intersection">Wikipedia page</a> to find \(\nabla\)
+		as the dot product between the ray direction and the difference between the ray origin and the sphere origin
+		squared, subtracted by the norm squared of the ray origin minus the sphere origin subtracted by the radius
+		squared. As an equation and not messy words:
+		$$
+		\nabla = (d\cdot(r_o-s_o))^2-(||r_o-s_o||^2-r^2)
+		$$
+		If nabla is less than zero there is no intersection, otherwise there is either one or two (it perfectly grazes
+		the edge or it happens in two points).
+		We can find the t's these occur at as: \[t=-(d\cdot(r_o-s_o)) \pm \sqrt{\nabla}\]
+		We can use these to find the min and max points of intersection. As long as the t is withing the max and min t range we
+		always take the min. Otherwise we take whichever fits.
+		Below are some starter renders!
 		<div style="display: flex; flex-direction: column; align-items: center;">
 			<table style="width: 100%; text-align: center; border-collapse: collapse;">
-			  <tr>
-				<td style="text-align: center;">
-				  <img src="assets/cornell.png" width="400px"/>
-				  <figcaption>Caption goes here.</figcaption>
-				</td>
-				<td style="text-align: center;">
-				  <img src="assets/cornell.png" width="400px"/>
-				  <figcaption>Caption goes here.</figcaption>
-				</td>
-			  </tr>
-			  <tr>
-				<td style="text-align: center;">
-				  <img src="assets/cornell.png" width="400px"/>
-				  <figcaption>Caption goes here.</figcaption>
-				</td>
-				<td style="text-align: center;">
-				  <img src="assets/cornell.png" width="400px"/>
-				  <figcaption>Caption goes here.</figcaption>
-				</td>
-			  </tr>
+				<tr>
+					<td style="text-align: center;">
+						<img src="assets/p1_CBempty.png" width="400px" />
+						<figcaption>Empty Cornell box</figcaption>
+					</td>
+					<td style="text-align: center;">
+						<img src="assets/p1_CBspheres.png" width="400px" />
+						<figcaption>Cornell box with spheres</figcaption>
+					</td>
+				</tr>
+				<tr>
+					<td style="text-align: center;">
+						<img src="assets/p1_banana.png" width="400px" />
+						<figcaption>A banana</figcaption>
+					</td>
+					<td style="text-align: center;">
+						<img src="assets/p1_teapot.png" width="400px" />
+						<figcaption>A teapot</figcaption>
+					</td>
+				</tr>
 			</table>
 		</div>
-		
+
 		<h2>Part 2: Bounding Volume Hierarchy</h2>
-		
-		The BVH construction algorithm is a recursive algorithm that has 2 main cases, the base case for a number of 
-		primitives less than or equal to max_leaf_size, and the recursive case of making a BVH node with a left and a 
+
+		The BVH construction algorithm is a recursive algorithm that has 2 main cases, the base case for a number of
+		primitives less than or equal to max_leaf_size, and the recursive case of making a BVH node with a left and a
 		right node by recursively calling construct_bvh after splitting the primitives. So in my construction algorithm,
-		I first check the base case by having a for loop that counts the number of primitives and create a full bounding box that 
+		I first check the base case by having a for loop that counts the number of primitives and creates a full
+		bounding
+		box that
 		expands around all of them. Then I check if the number of primitives is less than or equal to the max_leaf_size
-		and return a new node with these primitives. However, if the number of primitives is larger, this leads us to the 
-		recursive case. The recursive case is special because we needed to choose a good heuristic for defining a splitting
-		point. My initial design had a poor heuristic in combination with a bad fallback policy, where I found the longest axis of the bounding box of all the 
-		primitives and took the midpoint of that axis as the split point. For the fallback case, if one of the split vectors was empty, I just made the node into
-		a leaf. While this implementation was simpler, it led to very bad performance especially from my fallback which 
+		and return a new node with these primitives. However, if the number of primitives is larger, this leads us to
+		the
+		recursive case. The recursive case is special because we needed to choose a good heuristic for defining a
+		splitting
+		point. My initial design had a poor heuristic in combination with a bad fallback policy, where I found the
+		longest axis of the bounding box of all the
+		primitives and took the midpoint of that axis as the split point. For the fallback case, if one of the split
+		vectors was empty, I just made the node into
+		a leaf. While this implementation was simpler, it led to very bad performance especially from my fallback which
 		happened with my heuristic since the bounding box of the primitives can be defined by one super large
-		primitive and it could create a leaf with far more than max_leaf_size primitives because it gives up trying to split it. This led my runtime for rendering CBbunny with 64 samples per pixels and 5 bounces to take over 20 minutes. 
-		In the end, I changed this heuristic to greatly improve the performance of the renderer by instead expanding the 
-		bounding box based on the centroid of each primitive and then as a fallback, splitting the primitives list in the middle
-		after sorting it based on the centroid coordinate on the defined axis previously. To define my algorithm more 
-		concretely, with the bounding box of all the centroids, I determine the longest axis between xyz of the bounding box and find
-		the midpoint and that defines my split. Then I push the primitive in either the left or right list depending on 
-		if it is less than the split point for left and else for right. When one side is empty, I do the fallback case: I sort the primitives
+		primitive and it could create a leaf with far more than max_leaf_size primitives because it gives up trying to
+		split it. This led my runtime for rendering CBbunny with 64 samples per pixel and 5 bounces to take over 20
+		minutes.
+		In the end, I changed this heuristic to greatly improve the performance of the renderer by instead expanding the
+		bounding box based on the centroid of each primitive and then as a fallback, splitting the primitives list in
+		the middle
+		after sorting it based on the centroid coordinate on the defined axis previously. To define my algorithm more
+		concretely, with the bounding box of all the centroids, I determine the longest axis between xyz of the bounding
+		box and find
+		the midpoint and that defines my split. Then I push the primitive in either the left or right list depending on
+		if it is less than the split point for left and else for right. When one side is empty, I do the fallback case:
+		I sort the primitives
 		by their centroid coordinate along that axis and put the first half in left and the second half in right.
 		Then I copy the left vector followed by the right vector back into the primitive list, and set node->l and
 		node->r to recursive calls on the two resulting sub-ranges.
@@ -121,38 +173,45 @@
 
 		<div style="display: flex; flex-direction: column; align-items: center;">
 			<table style="width: 100%; text-align: center; border-collapse: collapse;">
-			  <tr>
-				<td style="text-align: center;">
-				  <img src="assets/p2_wall-e.png" width="400px"/>
-				  <figcaption>wall-e.dae (240,326 triangles)</figcaption>
-				</td>
-				<td style="text-align: center;">
-				  <img src="assets/p2_blob.png" width="400px"/>
-				  <figcaption>blob.dae (196,608 triangles)</figcaption>
-				</td>
-			  </tr>
-			  <tr>
-				<td style="text-align: center;">
-				  <img src="assets/p2_dragon.png" width="400px"/>
-				  <figcaption>dragon.dae (105,120 triangles)</figcaption>
-				</td>
-				<td style="text-align: center;">
-				  <img src="assets/p2_bench.png" width="400px"/>
-				  <figcaption>bench.dae (67,808 triangles)</figcaption>
-				</td>
-			  </tr>
+				<tr>
+					<td style="text-align: center;">
+						<img src="assets/p2_wall-e.png" width="400px" />
+						<figcaption>wall-e.dae (240,326 triangles)</figcaption>
+					</td>
+					<td style="text-align: center;">
+						<img src="assets/p2_blob.png" width="400px" />
+						<figcaption>blob.dae (196,608 triangles)</figcaption>
+					</td>
+				</tr>
+				<tr>
+					<td style="text-align: center;">
+						<img src="assets/p2_dragon.png" width="400px" />
+						<figcaption>dragon.dae (105,120 triangles)</figcaption>
+					</td>
+					<td style="text-align: center;">
+						<img src="assets/p2_bench.png" width="400px" />
+						<figcaption>bench.dae (67,808 triangles)</figcaption>
+					</td>
+				</tr>
 			</table>
 		</div>
 
-To compare the rendering, I took statistics on running full global illumination of 3 scenes with the following settings:
- 480×360 resolution, 64 samples per pixel, 4 light rays, max ray depth 5, 12 threads, on a 12-core Apple Silicon
-  CPU. When recording the times, I only reported the render time, excluding scene loading and BVH construction to get an 
-  accurate measurement. Looking at the data I have organized in the table below, there is a significant speedup of using 
-  BVH on the magnitude of 14.5x on the teapot to 78.8x as seen on the beetle. Without BVH, every ray has to be tested 
-  against every primitive, so the render time grows with the number of triangles, while with BVH the render times stay 
-  around 1 to 2.5 seconds. This is greatly attributed to the construction of the BVH tree, which lets a ray skip any node
-   whose bounding box it misses, giving roughly O(log(n)) traversal down to the nodes that intersect, and by having leaf nodes
-    with at most max_leaf_size primitives.
+		To compare the rendering, I took statistics on running full global illumination of 3 scenes with the following
+		settings:
+		480×360 resolution, 64 samples per pixel, 4 light rays, max ray depth 5, 12 threads, on a 12-core Apple Silicon
+		CPU. When recording the times, I only reported the render time, excluding scene loading and BVH construction to
+		get an
+		accurate measurement. Looking at the data I have organized in the table below, there is a significant speedup of
+		using
+		BVH on the magnitude of 14.5x on the teapot to 78.8x as seen on the beetle. Without BVH, every ray has to be
+		tested
+		against every primitive, so the render time grows with the number of triangles, while with BVH the render times
+		stay
+		around 1 to 2.5 seconds. This is greatly attributed to the construction of the BVH tree, which lets a ray skip
+		any node
+		whose bounding box it misses, giving roughly O(log(n)) traversal down to the nodes that intersect, and by having
+		leaf nodes
+		with at most max_leaf_size primitives.
 		<div style="display: flex; justify-content: center; margin: 20px 0;">
 			<table class="data-table">
 				<tr>
@@ -186,27 +245,314 @@ To compare the rendering, I took statistics on running full global illumination 
 
 
 		<h2>Part 3: Direct Illumination</h2>
-		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+		Now let's worry about actually generating what these scenes actually should look like, this means actually
+		calculating the amount of light that hits the given point.
+		First we're gonna start with a somewhat naive approach. For each point that we hit, let's just throw a bunch of
+		rays out from there and average the amount of light. To do this we sample ray directions in a hemisphere. We
+		consider these to be around the point on the surface so, we need to translate these from being relative to the
+		object to relative to the world. Then we see if we intersect anything, and if we do then we calculate the
+		luminance out as the reflectance of the object, times the emission of the object we hit, times the cosine of the
+		angle between the normal of the intersection and the direction of the ray, divided by the pdf. Do this for some
+		n
+		rays and average the result. <br /><br /> Notably however, most surfaces are not emissive meaning this output
+		zeroes out. We really only care about sampling rays that hit lights so we can optimize this by instead throwing
+		rays in the direction of every light. To do this we loop over every light and sample rays that go in the
+		direction of the light. From here we can see if an intersection exists between the space of just after our
+		point and just before the light. If no such intersection happens then light is probably hitting our surface.
+		Using this we can calculate the amount of light as before. This allows us to get a much less noisy result.
+		<div style="display: flex; flex-direction: column; align-items: center;">
+			<table style="width: 100%; text-align: center; border-collapse: collapse;">
+
+				<tr>
+					<td style="text-align: center;">
+						<img src="assets/p3_CBspheres_lambertian_hemisphere.png" width="400px" />
+						<figcaption>CB Spheres hemisphere</figcaption>
+					</td>
+					<td style="text-align: center;">
+						<img src="assets/p3_CBspheres_lambertian_importance.png" width="400px" />
+						<figcaption>CB Spheres importance</figcaption>
+					</td>
+				</tr>
+				<tr>
+					<td style="text-align: center;">
+						<img src="assets/p3_CBbunny_hemisphere.png" width="400px" />
+						<figcaption>bunny hemisphere</figcaption>
+					</td>
+					<td style="text-align: center;">
+						<img src="assets/p3_CBbunny_importance.png" width="400px" />
+						<figcaption>bunny light importance</figcaption>
+					</td>
+				</tr>
+			</table>
+		</div>
+		<div style="display: flex; flex-direction: column; align-items: center;">
+			<table style="width: 100%; text-align: center; border-collapse: collapse;">
+
+				<tr>
+					<td style="text-align: center;">
+						<img src="assets/p3_CBbunny_s1_l1.png" width="400px" />
+						<figcaption>1 ray per light</figcaption>
+					</td>
+					<td style="text-align: center;">
+						<img src="assets/p3_CBbunny_s1_l4.png" width="400px" />
+						<figcaption>4 rays per light</figcaption>
+					</td>
+				</tr>
+				<tr>
+					<td style="text-align: center;">
+						<img src="assets/p3_CBbunny_s1_l16.png" width="400px" />
+						<figcaption>16 rays per light</figcaption>
+					</td>
+					<td style="text-align: center;">
+						<img src="assets/p3_CBbunny_s1_l64.png" width="400px" />
+						<figcaption>64 rays per light</figcaption>
+					</td>
+				</tr>
+			</table>
+		</div>
 
 		<h2>Part 4: Global Illumination</h2>
-		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+		Now that we have direct lighting at each point what about lighting that comes from other
+		surfaces? Naturally, light will hit a surface bounce off onto another and then onto our sensor, something we
+		didn't consider in the last part. To do this we create a recursive function where when we hit a point we collect
+		the light that hits that point using our direct lighting implementation, then we sample a random direction to
+		bounce to and repeat. We do this for n bounces summing up the total luminance out. However, this gets extremely
+		expensive quickly, so we use a technique called Russian Roulette sampling. Effectively we randomly terminate
+		after at least one ray bounce, I chose the probability of 0.35.
+		<br />
+		<br />
+		Global illumination with 1024 samples
+		<div style="display: flex; flex-direction: column; align-items: center;">
+			<table style="width: 100%; text-align: center; border-collapse: collapse;">
+				<tr>
+					<td style="text-align: center;">
+						<img src="assets/p4_CBspheres_lambertian_global.png" width="400px" />
+						<figcaption>CB Spheres</figcaption>
+					</td>
+					<td style="text-align: center;">
+						<img src="assets/p4_CBbunny_global.png" width="400px" />
+						<figcaption>CB Bunny</figcaption>
+					</td>
+					<td style="text-align: center;">
+						<img src="assets/p4_dragon_global.png" width="400px" />
+						<figcaption>Dragon</figcaption>
+					</td>
+				</tr>
+			</table>
+		</div>
+		<br />
+		<br />
+		Direct vs Indirect Illumination
+		<div style="display: flex; flex-direction: column; align-items: center;">
+			<table style="width: 100%; text-align: center; border-collapse: collapse;">
+				<tr>
+					<td style="text-align: center;">
+						<img src="assets/p4_spheres_direct_only.png" width="400px" />
+						<figcaption>Direct</figcaption>
+					</td>
+					<td style="text-align: center;">
+						<img src="assets/p4_spheres_indirect_only.png" width="400px" />
+						<figcaption>Indirect</figcaption>
+					</td>
+				</tr>
+			</table>
+		</div>
+		<br /><br />
+		Ray depths of 0 through 5 accumulated
+		<div style="display: flex; flex-direction: column; align-items: center;">
+			<table style="width: 100%; text-align: center; border-collapse: collapse;">
+				<tr>
+					<td style="text-align: center;">
+						<img src="assets/p4_bunny_accum_m0.png" width="400px" />
+						<figcaption>0 bounces</figcaption>
+					</td>
+					<td style="text-align: center;">
+						<img src="assets/p4_bunny_accum_m1.png" width="400px" />
+						<figcaption>1 bounce</figcaption>
+					</td>
+					<td style="text-align: center;">
+						<img src="assets/p4_bunny_accum_m2.png" width="400px" />
+						<figcaption>2 bounces</figcaption>
+					</td>
+				</tr>
+				<tr>
+					<td style="text-align: center;">
+						<img src="assets/p4_bunny_accum_m3.png" width="400px" />
+						<figcaption>3 bounces</figcaption>
+					</td>
+					<td style="text-align: center;">
+						<img src="assets/p4_bunny_accum_m4.png" width="400px" />
+						<figcaption>4 bounces</figcaption>
+					</td>
+
+					<td style="text-align: center;">
+						<img src="assets/p4_bunny_accum_m5.png" width="400px" />
+						<figcaption>5 bounces</figcaption>
+					</td>
+				</tr>
+			</table>
+		</div>
+		<br /><br />
+		Ray depths of 0 through 5 not accumulated
+		<div style="display: flex; flex-direction: column; align-items: center;">
+			<table style="width: 100%; text-align: center; border-collapse: collapse;">
+				<tr>
+					<td style="text-align: center;">
+						<img src="assets/p4_bunny_bounce_m0.png" width="400px" />
+						<figcaption>0 bounces</figcaption>
+					</td>
+					<td style="text-align: center;">
+						<img src="assets/p4_bunny_bounce_m1.png" width="400px" />
+						<figcaption>1 bounce</figcaption>
+					</td>
+					<td style="text-align: center;">
+						<img src="assets/p4_bunny_bounce_m2.png" width="400px" />
+						<figcaption>2 bounces</figcaption>
+					</td>
+				</tr>
+				<tr>
+					<td style="text-align: center;">
+						<img src="assets/p4_bunny_bounce_m3.png" width="400px" />
+						<figcaption>3 bounces</figcaption>
+					</td>
+					<td style="text-align: center;">
+						<img src="assets/p4_bunny_bounce_m4.png" width="400px" />
+						<figcaption>4 bounces</figcaption>
+					</td>
+
+					<td style="text-align: center;">
+						<img src="assets/p4_bunny_bounce_m5.png" width="400px" />
+						<figcaption>5 bounces</figcaption>
+					</td>
+				</tr>
+			</table>
+		</div><br />
+		Somewhat notably we can see that indirect bounces of light (bounces 2 and onward) provide lots of light to
+		previously shaded regions (see under the bunny), along with color to white surfaces where the blue or red walls
+		bounce to (adding a red or blue tint to the floor and ceiling and sides of the bunny).
+		<br /><br />
+		Russian Roulette
+		<div style="display: flex; flex-direction: column; align-items: center;">
+			<table style="width: 100%; text-align: center; border-collapse: collapse;">
+				<tr>
+					<td style="text-align: center;">
+						<img src="assets/p4_bunny_accum_m0.png" width="400px" />
+						<figcaption>0 bounces</figcaption>
+					</td>
+					<td style="text-align: center;">
+						<img src="assets/p4_bunny_accum_m1.png" width="400px" />
+						<figcaption>1 bounce</figcaption>
+					</td>
+					<td style="text-align: center;">
+						<img src="assets/p4_bunny_accum_m2.png" width="400px" />
+						<figcaption>2 bounces</figcaption>
+					</td>
+				</tr>
+				<tr>
+					<td style="text-align: center;">
+						<img src="assets/p4_bunny_accum_m3.png" width="400px" />
+						<figcaption>3 bounces</figcaption>
+					</td>
+					<td style="text-align: center;">
+						<img src="assets/p4_bunny_accum_m4.png" width="400px" />
+						<figcaption>4 bounces</figcaption>
+					</td>
+
+					<td style="text-align: center;">
+						<img src="assets/p4_bunny_rr_m100.png" width="400px" />
+						<figcaption>100 bounces</figcaption>
+					</td>
+				</tr>
+			</table>
+		</div>
+		<br /><br />
+		1, 2, 4, 8, 16, 64, 1024 samples-per-pixel
+		<div style="display: flex; flex-direction: column; align-items: center;">
+			<table style="width: 100%; text-align: center; border-collapse: collapse;">
+				<tr>
+					<td style="text-align: center;">
+						<img src="assets/p4_spheres_spp1.png" width="400px" />
+						<figcaption>1 sample</figcaption>
+					</td>
+					<td style="text-align: center;">
+						<img src="assets/p4_spheres_spp2.png" width="400px" />
+						<figcaption>2 samples</figcaption>
+					</td>
+					<td style="text-align: center;">
+						<img src="assets/p4_spheres_spp4.png" width="400px" />
+						<figcaption>4 samples</figcaption>
+					</td>
+				</tr>
+			</table>
+		</div>
+		<div style="display: flex; flex-direction: column; align-items: center;">
+			<table style="width: 100%; text-align: center; border-collapse: collapse;">
+				<tr>
+					<td style="text-align: center;">
+						<img src="assets/p4_spheres_spp8.png" width="400px" />
+						<figcaption>8 samples</figcaption>
+					</td>
+					<td style="text-align: center;">
+						<img src="assets/p4_spheres_spp16.png" width="400px" />
+						<figcaption>16 samples</figcaption>
+					</td>
+					<td style="text-align: center;">
+						<img src="assets/p4_spheres_spp64.png" width="400px" />
+						<figcaption>64 samples</figcaption>
+					</td>
+					<td style="text-align: center;">
+						<img src="assets/p4_spheres_spp1024.png" width="400px" />
+						<figcaption>1024 samples</figcaption>
+					</td>
+				</tr>
+			</table>
+		</div>
 
 		<h2>Part 5: Adaptive Sampling</h2>
-		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+		From the above we can see that while we are capable of generating very nice results, these results require a lot
+		of sampling, which takes a lot of time. We can improve this by sampling less on pixels that converge their
+		illuminance quickly. We can figure out if a pixel's quickly converging by using the standard deviation and the
+		square root of the number of samples we've taken. We write this as \(I=1.96 \cdot \frac{\sigma}{\sqrt{n}}\)
+		where if \(I\leq 0.05\mu\) we stop sampling. This gives us a 95% confidence that the pixel is between \(\mu \pm
+		I\). So after a set of samples, we calculate the mean and variance so far and do the check as described above,
+		and if it succeeds we simply return the radiance of the point thus far.
+		<br /><br />
+		Red is high and blue is low.
+		<div style="display: flex; flex-direction: column; align-items: center;">
+			<table style="width: 100%; text-align: center; border-collapse: collapse;">
+				<tr>
+					<td style="text-align: center;">
+						<img src="assets/p5_spheres.png" width="400px" />
+						<figcaption>Spheres with adaptive sampling</figcaption>
+					</td>
+					<td style="text-align: center;">
+						<img src="assets/p5_spheres_rate.png" width="400px" />
+						<figcaption>Sampling rate at each area</figcaption>
+					</td>
+				</tr>
+				<tr>
+					<td style="text-align: center;">
+						<img src="assets/p5_bunny.png" width="400px" />
+						<figcaption>Bunny with adaptive sampling</figcaption>
+					</td>
+					<td style="text-align: center;">
+						<img src="assets/p5_bunny_rate.png" width="400px" />
+						<figcaption>Sampling rate at each area</figcaption>
+					</td>
+				</tr>
+			</table>
+		</div>
+		I think rather naturally, shaded regions of the image tend to receive a lot more samples as they don't have a
+		direct light that gives them a large amount of illuminance off the bat.
 
 		<h2>(Optional) Part 6: Extra Credit Opportunities</h2>
-		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-		
-		<h2>Additional Notes (please remove)</h2>
-		<ul>
-			<li>You can also add code if you'd like as so: <code>code code code</code></li>
-			<li>If you'd like to add math equations, 
-				<ul>
-					<li>You can write inline equations like so: \( a^2 + b^2 = c^2 \)</li>
-					<li>You can write display equations like so: \[ a^2 + b^2 = c^2 \]</li>
-				</ul>
-			</li>
-		</ul>
-		</div>
-	</body>
+		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore
+		magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
+		consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla
+		pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est
+		laborum.
+
+	</div>
+</body>
+
 </html>
