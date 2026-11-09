@@ -91,7 +91,7 @@
 		O-A &= -tD + \beta (B-A)+\gamma(C-A)\\
 		\end{align}
 		$$
-		Finally we can simply apply Cramer's rule to find \(\beta\), \(\gamma\) and t.
+		Finally we can simply apply Cramer's rule to find \(\beta\), \(\gamma\) and t. As long as t is with min and max t we update max_t to our t and continue.
 		Through these we can find the surface normal using the barycentric coordinates as simply \(\alpha\cdot n_1 +
 		\beta\cdot n_2 + \gamma\cdot n_3\).<br /><br />
 		Next sphere intersections, for this I took the time to read the <a
@@ -105,7 +105,7 @@
 		If nabla is less than zero there is no intersection, otherwise there is either one or two (it perfectly grazes
 		the edge or it happens in two points).
 		We can find the t's these occur at as: \[t=-(d\cdot(r_o-s_o)) \pm \sqrt{\nabla}\]
-		We can use these to find the min and max points of intersection. As long as the t is withing the max and min t range we
+		We can use these to find the min and max points of intersection. As long as the t is within the max and min t range we
 		always take the min. Otherwise we take whichever fits.
 		Below are some starter renders!
 		<div style="display: flex; flex-direction: column; align-items: center;">
@@ -258,7 +258,7 @@
 		zeroes out. We really only care about sampling rays that hit lights so we can optimize this by instead throwing
 		rays in the direction of every light. To do this we loop over every light and sample rays that go in the
 		direction of the light. From here we can see if an intersection exists between the space of just after our
-		point and just before the light. If no such intersection happens then light is probably hitting our surface.
+		point and just before the light (so plus/minus an \(\epsillon\) being a small float value). If no such intersection happens then light is unoccluded.
 		Using this we can calculate the amount of light as before.
 		<div style="display: flex; flex-direction: column; align-items: center;">
 			<table style="width: 100%; text-align: center; border-collapse: collapse;">
@@ -316,10 +316,10 @@
 		Now that we have direct lighting at each point what about lighting that comes from other
 		surfaces? Naturally, light will hit a surface bounce off onto another and then onto our sensor, something we
 		didn't consider in the last part. To do this we create a recursive function where when we hit a point we collect
-		the light that hits that point using our direct lighting implementation, then we sample a random direction to
-		bounce to and repeat. We do this for n bounces summing up the total luminance out. However, this gets extremely
+		the light that hits that point using our direct lighting implementation, then we sample a random direction to using sample_f
+		bounce to and repeat until we hit our max ray depth. We do this for n bounces summing up the total luminance out. However, this gets extremely
 		expensive quickly, so we use a technique called Russian Roulette sampling. Effectively we randomly terminate
-		after at least one ray bounce, I chose the probability of 0.35.
+		after at least one ray bounce, I chose the probability of 0.35 for termination. To balance pixels that are randomly sampled more we divide the result by 0.65.
 		<br />
 		<br />
 		Global illumination with 1024 samples
@@ -514,11 +514,11 @@
 		of sampling, which takes a lot of time. We can improve this by sampling less on pixels that converge their
 		illuminance quickly. We can figure out if a pixel's quickly converging by using the standard deviation and the
 		square root of the number of samples we've taken. We write this as \(I=1.96 \cdot \frac{\sigma}{\sqrt{n}}\)
-		where if \(I\leq 0.05\mu\) we stop sampling. This gives us a 95% confidence that the pixel is between \(\mu \pm
-		I\). So after a set of samples, we calculate the mean and variance so far and do the check as described above,
+		where if \(I\leq 0.05\mu\) we stop sampling (0.05 is the default max tolerance). This gives us a 95% confidence that the pixel is between \(\mu \pm
+		I\). So after a set of samples (we define samples per batch which is how often we make this check), we calculate the mean and variance so far and do the check as described above,
 		and if it succeeds we simply return the radiance of the point thus far.
 		<br /><br />
-		Red is high and blue is low.
+		Red is high and blue is low, rendered at spp=2048 and ray depth of 5.
 		<div style="display: flex; flex-direction: column; align-items: center;">
 			<table style="width: 100%; text-align: center; border-collapse: collapse;">
 				<tr>
@@ -543,8 +543,7 @@
 				</tr>
 			</table>
 		</div>
-		I think rather naturally, shaded regions of the image tend to receive a lot more samples as they don't have a
-		direct light that gives them a large amount of illuminance off the bat.
+		I think rather naturally, shaded regions of the image tend to receive a lot more samples as they recieve a lot of their light from indirect light meaning their radiance probably varies a lot.
 
 	</div>
 </body>
