@@ -259,7 +259,7 @@
 		rays in the direction of every light. To do this we loop over every light and sample rays that go in the
 		direction of the light. From here we can see if an intersection exists between the space of just after our
 		point and just before the light. If no such intersection happens then light is probably hitting our surface.
-		Using this we can calculate the amount of light as before. This allows us to get a much less noisy result.
+		Using this we can calculate the amount of light as before.
 		<div style="display: flex; flex-direction: column; align-items: center;">
 			<table style="width: 100%; text-align: center; border-collapse: collapse;">
 
@@ -310,6 +310,7 @@
 				</tr>
 			</table>
 		</div>
+		Visibly, images generated with light importance have much less noise. This makes a lot of sense as we are now focusing our efforts into hitting objects that actually emit light rather than quite literally nothing. This also explains the randomish noise pattern as hemisphere sampling was just up to chance if we happened to sample a point on the light or not, now we're guaranteed to at least be aiming at the light.
 
 		<h2>Part 4: Global Illumination</h2>
 		Now that we have direct lighting at each point what about lighting that comes from other
