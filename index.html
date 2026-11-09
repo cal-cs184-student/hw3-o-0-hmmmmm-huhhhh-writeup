@@ -258,7 +258,7 @@
 		zeroes out. We really only care about sampling rays that hit lights so we can optimize this by instead throwing
 		rays in the direction of every light. To do this we loop over every light and sample rays that go in the
 		direction of the light. From here we can see if an intersection exists between the space of just after our
-		point and just before the light (so plus/minus an \(\epsillon\) being a small float value). If no such intersection happens then light is unoccluded.
+		point and just before the light (so plus/minus an \(\epsilon\) being a small float value). If no such intersection happens then light is unoccluded.
 		Using this we can calculate the amount of light as before.
 		<div style="display: flex; flex-direction: column; align-items: center;">
 			<table style="width: 100%; text-align: center; border-collapse: collapse;">
